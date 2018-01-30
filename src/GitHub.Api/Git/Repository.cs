@@ -103,11 +103,13 @@ namespace GitHub.Unity
 
         public ITask RequestLock(string file)
         {
+			Logger.Trace("requesting lock for {0}", file);
             return repositoryManager.LockFile(file);
         }
 
         public ITask ReleaseLock(string file, bool force)
         {
+			Logger.Trace("releasing lock for file {0} force? {1}", file, force);
             return repositoryManager.UnlockFile(file, force);
         }
 

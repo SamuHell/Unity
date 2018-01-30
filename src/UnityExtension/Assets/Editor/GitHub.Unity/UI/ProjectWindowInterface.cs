@@ -65,17 +65,28 @@ namespace GitHub.Unity
         [MenuItem("Assets/Request Lock", true)]
         private static bool ContextMenu_CanLock()
         {
-            if (isBusy)
-                return false;
-            if (repository == null || !repository.CurrentRemote.HasValue)
-                return false;
-
+			if (isBusy)
+			{
+				Logger.Trace("is busy can't lock");
+				return false;
+			}
+			if (repository == null || !repository.CurrentRemote.HasValue)
+			{
+				Logger.Trace("can't lock, repository is null or there's not remote");
+				return false;
+			}
             var selected = Selection.activeObject;
-            if (selected == null)
-                return false;
-            if (locks == null)
-                return false;
+			if (selected == null)
+			{
+				Logger.Trace("can't lock, selected is null");
+				return false;
+			}
 
+			if (locks == null)
+			{
+				Logger.Trace("can't lock, locks is null");
+				return false;
+			}
             NPath assetPath = AssetDatabase.GetAssetPath(selected.GetInstanceID()).ToNPath();
             NPath repositoryPath = EntryPoint.Environment.GetRepositoryPath(assetPath);
 
@@ -89,28 +100,36 @@ namespace GitHub.Unity
             {
                 status = entries.FirstOrDefault(x => repositoryPath == x.Path.ToNPath()).Status;
             }
+			Logger.Trace("checking if can lock, already locked? {0}, status {1}", alreadyLocked, status);
             return !alreadyLocked && status != GitFileStatus.Untracked && status != GitFileStatus.Ignored;
         }
 
-        [MenuItem("Assets/Request Lock")]
-        private static void ContextMenu_Lock()
-        {
-            isBusy = true;
-            var selected = Selection.activeObject;
+		[MenuItem("Assets/Request Lock")]
+		private static void ContextMenu_Lock()
+		{
+			isBusy = true;
+			var selected = Selection.activeObject;
 
-            NPath assetPath = AssetDatabase.GetAssetPath(selected.GetInstanceID()).ToNPath();
-            NPath repositoryPath = EntryPoint.Environment.GetRepositoryPath(assetPath);
-
-            repository
-                .RequestLock(repositoryPath)
-                .ThenInUI(_ =>
-                {
-                    isBusy = false;
-                    Selection.activeGameObject = null;
-                    EditorApplication.RepaintProjectWindow();
-                })
-                .Start();
-        }
+			NPath assetPath = AssetDatabase.GetAssetPath(selected.GetInstanceID()).ToNPath();
+			NPath repositoryPath = EntryPoint.Environment.GetRepositoryPath(assetPath);
+			try
+			{
+				Logger.Trace("requesting lock on repository {0}", repositoryPath);
+				repository
+					.RequestLock(repositoryPath)
+					.ThenInUI(_ =>
+					{
+						isBusy = false;
+						Selection.activeGameObject = null;
+						EditorApplication.RepaintProjectWindow();
+					})
+					.Start();
+			}
+			catch (Exception e)
+			{
+				Logger.Error(e);
+			}
+		}
 
         [MenuItem("Assets/Release lock", true, 1000)]
         private static bool ContextMenu_CanUnlock()
